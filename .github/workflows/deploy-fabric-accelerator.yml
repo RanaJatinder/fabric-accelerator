@@ -82,11 +82,14 @@ jobs:
             fab exists .capacities/$FABRIC_CAPACITY_NAME.Capacity | grep -q true || fab create .capacities/$FABRIC_CAPACITY_NAME.Capacity -P location=$FABRIC_CAPACITY_LOCATION,sku=$FABRIC_CAPACITY_SKU,resourceGroup=$RESOURCE_GROUP,subscriptionId=${{ secrets.SUBSCRIPTION_ID }},admin=$FABRIC_CAPACITY_ADMIN_ID
             # fab ls .capacities/$FABRIC_CAPACITY_NAME.Capacity -q state | tr -d '\r' | grep -q "Inactive" || fab start .capacities/$FABRIC_CAPACITY_NAME.Capacity -f
 
-       # Create Workspace if it does not exist
         - name: Create Workspace if it does not exist
           run: |
-            fab exists $WORKSPACE_NAME.Workspace | grep -q true && echo "Workspace already exists" || (fab create $WORKSPACE_NAME.Workspace -P capacityName=$FABRIC_CAPACITY_NAME && fab acl set $WORKSPACE_NAME.Workspace -I $WORKSPACE_ADMIN_ID -R admin -f)
-             
+            if ! fab exists $WORKSPACE_NAME.Workspace | grep -q true; then
+              fab create $WORKSPACE_NAME.Workspace -P capacityName=$FABRIC_CAPACITY_NAME
+              fab acl set $WORKSPACE_NAME.Workspace -P principal.id=$WORKSPACE_ADMIN_ID,principal.type=$WORKSPACE_ADMIN_TYPE,role=Admin
+            else
+              echo "Workspace $WORKSPACE_NAME already exists, skipping creation"
+            fi
 
         # Delete Eventstream if it exists (TEMP WORKAROUND for issue with existing Eventstream during redeployments)
         - name: Delete Eventstream if it exists
