@@ -87,7 +87,7 @@ jobs:
             WORKSPACE_EXISTS=$(fab exists $WORKSPACE_NAME.Workspace 2>&1 | tr -d '[:space:]')
             echo "Workspace existence check result: $WORKSPACE_EXISTS"
             
-            if [[ "$WORKSPACE_EXISTS" == "*true" ]]; then
+            if [[ "$WORKSPACE_EXISTS" == "true" ]]; then
               echo "Workspace $WORKSPACE_NAME already exists, skipping creation"
             else
               echo "Creating workspace $WORKSPACE_NAME"
