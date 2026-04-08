@@ -85,30 +85,22 @@ jobs:
        # Create Fabric Capacity if it doesn't exist
         - name: Create Workspace if it does not exist
           run: |
-            WORKSPACE_EXISTS=$(fab exists $WORKSPACE_NAME.Workspace 2>&1 | tr -d '[:space:]' | tr -d '*')
-            echo "Workspace existence check result: $WORKSPACE_EXISTS"
-            
-            if [[ "$WORKSPACE_EXISTS" == "true" ]]; then
+            echo "Attempting to create workspace $WORKSPACE_NAME"
+            CREATE_OUTPUT=$(fab create $WORKSPACE_NAME.Workspace -P capacityName=$FABRIC_CAPACITY_NAME 2>&1 || true)
+            CREATE_EXIT=$?
+            echo "CREATE_OUTPUT: $CREATE_OUTPUT"
+            echo "CREATE_EXIT: $CREATE_EXIT"
+        
+            if [ $CREATE_EXIT -eq 0 ]; then
+              echo "Workspace $WORKSPACE_NAME created successfully"
+              fab acl set $WORKSPACE_NAME.Workspace \
+                -P principal.id=$WORKSPACE_ADMIN_ID,principal.type=$WORKSPACE_ADMIN_TYPE,role=Admin
+            elif echo "$CREATE_OUTPUT" | grep -qi "AlreadyExists\|already exist\|already exists"; then
               echo "Workspace $WORKSPACE_NAME already exists, skipping creation"
             else
-              echo "Creating workspace $WORKSPACE_NAME"
-              CREATE_OUTPUT=$(fab create $WORKSPACE_NAME.Workspace -P capacityName=$FABRIC_CAPACITY_NAME 2>&1)
-              CREATE_EXIT=$?
-              echo "$CREATE_OUTPUT"
-              
-              if [ $CREATE_EXIT -ne 0 ]; then
-                # Check if failure was because workspace already exists
-                if echo "$CREATE_OUTPUT" | grep -q "WorkspaceNameAlreadyExists"; then
-                  echo "Workspace $WORKSPACE_NAME already exists, skipping creation"
-                else
-                  echo "Failed to create workspace $WORKSPACE_NAME" >&2
-                  exit 1
-                fi
-              else
-                echo "Workspace $WORKSPACE_NAME created successfully"
-              fi
-              
-              fab acl set $WORKSPACE_NAME.Workspace -P principal.id=$WORKSPACE_ADMIN_ID,principal.type=$WORKSPACE_ADMIN_TYPE,role=Admin
+              echo "Unexpected error creating workspace:" >&2
+              echo "$CREATE_OUTPUT" >&2
+              exit 1
             fi
         # Delete Eventstream if it exists (TEMP WORKAROUND for issue with existing Eventstream during redeployments)
         - name: Delete Eventstream if it exists
