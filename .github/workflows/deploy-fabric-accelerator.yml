@@ -6,7 +6,7 @@ env:
   FABRIC_CAPACITY_SKU: F2
   FABRIC_CAPACITY_ADMIN_ID: dbca224b-df16-4058-b110-89e99140a810
   RESOURCE_GROUP: AzureFabric
-  WORKSPACE_NAME: FabricAccelerator
+  WORKSPACE_NAME: FabricAcceleratorDemo
   WORKSPACE_ADMIN_ID: 002478cb-4b49-4a47-8c1d-f9bb77ef54a8
   WORKSPACE_ADMIN_TYPE: group # valid values: user, group
   FABRIC_SQL_DB_NAME: controldb-fabric-accelerator
@@ -82,7 +82,7 @@ jobs:
             fab exists .capacities/$FABRIC_CAPACITY_NAME.Capacity | grep -q true || fab create .capacities/$FABRIC_CAPACITY_NAME.Capacity -P location=$FABRIC_CAPACITY_LOCATION,sku=$FABRIC_CAPACITY_SKU,resourceGroup=$RESOURCE_GROUP,subscriptionId=${{ secrets.SUBSCRIPTION_ID }},admin=$FABRIC_CAPACITY_ADMIN_ID
             # fab ls .capacities/$FABRIC_CAPACITY_NAME.Capacity -q state | tr -d '\r' | grep -q "Inactive" || fab start .capacities/$FABRIC_CAPACITY_NAME.Capacity -f
 
-       # Create Fabric Capacity if it doesn't exist
+       # Create Fabric Workspace if it doesn't exist
         - name: Create Workspace if it does not exist
           run: |
             echo "Attempting to create workspace $WORKSPACE_NAME"
