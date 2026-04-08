@@ -82,16 +82,30 @@ jobs:
             fab exists .capacities/$FABRIC_CAPACITY_NAME.Capacity | grep -q true || fab create .capacities/$FABRIC_CAPACITY_NAME.Capacity -P location=$FABRIC_CAPACITY_LOCATION,sku=$FABRIC_CAPACITY_SKU,resourceGroup=$RESOURCE_GROUP,subscriptionId=${{ secrets.SUBSCRIPTION_ID }},admin=$FABRIC_CAPACITY_ADMIN_ID
             # fab ls .capacities/$FABRIC_CAPACITY_NAME.Capacity -q state | tr -d '\r' | grep -q "Inactive" || fab start .capacities/$FABRIC_CAPACITY_NAME.Capacity -f
 
+       # Create Fabric Capacity if it doesn't exist
         - name: Create Workspace if it does not exist
           run: |
-            WORKSPACE_EXISTS=$(fab exists $WORKSPACE_NAME.Workspace 2>&1 | tr -d '[:space:]')
+            WORKSPACE_EXISTS=$(fab exists $WORKSPACE_NAME.Workspace 2>&1 | tr -d '[:space:]' | tr -d '*')
             echo "Workspace existence check result: $WORKSPACE_EXISTS"
+
+            # Strip asterisk before comparison
+            WORKSPACE_EXISTS_CLEAN=$(echo "$WORKSPACE_EXISTS" | tr -d '*')
+            echo "WORKSPACE existance check result (clean): $WORKSPACE_EXISTS_CLEAN"
             
             if [[ "$WORKSPACE_EXISTS" == "true" ]]; then
               echo "Workspace $WORKSPACE_NAME already exists, skipping creation"
-            else
+             else
               echo "Creating workspace $WORKSPACE_NAME"
-              fab create $WORKSPACE_NAME.Workspace -P capacityName=$FABRIC_CAPACITY_NAME
+              fab create $WORKSPACE_NAME.Workspace -P capacityName=$FABRIC_CAPACITY_NAME || {
+              # Handle race condition -check again if workspace was created
+              RECHECK =$(fab exists $WORKSPACE_NAME.Worksopace 2>&1 | tr -d '[:space:]' | tr -d '*')
+              if [[ "$RECHECK" == "true" ]]; then
+                echo "Workspace $WORKSPACE_NAME already exists after recheck, skipping"
+              else
+                echo "FAILDE to create workspace $WORKSPACE_NAME" >&2
+                exit 1
+              fi
+              }
               fab acl set $WORKSPACE_NAME.Workspace -P principal.id=$WORKSPACE_ADMIN_ID,principal.type=$WORKSPACE_ADMIN_TYPE,role=Admin
             fi
 
