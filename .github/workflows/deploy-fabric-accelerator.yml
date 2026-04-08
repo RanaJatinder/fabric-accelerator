@@ -84,11 +84,15 @@ jobs:
 
         - name: Create Workspace if it does not exist
           run: |
-            if ! fab exists $WORKSPACE_NAME.Workspace | grep -q true; then
+            WORKSPACE_EXISTS=$(fab exists $WORKSPACE_NAME.Workspace 2>&1 | tr -d '[:space:]')
+            echo "Workspace existence check result: $WORKSPACE_EXISTS"
+            
+            if [[ "$WORKSPACE_EXISTS" == "*true" ]]; then
+              echo "Workspace $WORKSPACE_NAME already exists, skipping creation"
+            else
+              echo "Creating workspace $WORKSPACE_NAME"
               fab create $WORKSPACE_NAME.Workspace -P capacityName=$FABRIC_CAPACITY_NAME
               fab acl set $WORKSPACE_NAME.Workspace -P principal.id=$WORKSPACE_ADMIN_ID,principal.type=$WORKSPACE_ADMIN_TYPE,role=Admin
-            else
-              echo "Workspace $WORKSPACE_NAME already exists, skipping creation"
             fi
 
         # Delete Eventstream if it exists (TEMP WORKAROUND for issue with existing Eventstream during redeployments)
